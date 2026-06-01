@@ -30,7 +30,6 @@ POLL_INTERVAL = int(os.environ.get("POLL_INTERVAL", "120"))
 ADD_SOURCE_LINK = os.environ.get("ADD_SOURCE_LINK", "true").lower() == "true"
 
 TG_API = f"https://api.telegram.org/bot{BOT_TOKEN}"
-TG_TEXT_LIMIT = 4096          # лимит длины сообщения у Telegram
 SAFE_CHUNK = 3900             # режем сырой текст с запасом — экранирование удлиняет его
 
 # ---------------------------------------------------------------------------
@@ -112,9 +111,6 @@ async def analyze_post(text: str) -> dict:
 # ---------------------------------------------------------------------------
 # Парсинг публичного канала через t.me/s/<channel>
 # ---------------------------------------------------------------------------
-_PHOTO_URL_RE = re.compile(r"background-image:\s*url\(['\"]?(.*?)['\"]?\)")
-
-
 def parse_channel(html: str, channel: str) -> list[dict]:
     soup = BeautifulSoup(html, "html.parser")
     posts: dict[int, dict] = {}
@@ -255,7 +251,8 @@ async def process_posts(http, state: dict, channel: str, posts: list[dict]) -> N
             publish_post = dict(post)
             if verdict["text"]:
                 publish_post["text"] = verdict["text"]
-            await publish(http, publish_post)
+            if not await publish(http, publish_post):
+                break
             await asyncio.sleep(1)
         elif verdict["is_target"] and verdict["is_ad"]:
             logger.info(f"🚫 По теме, но реклама — пропуск {post['link']}")
