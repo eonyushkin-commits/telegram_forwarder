@@ -6,7 +6,7 @@ services:
     env_file:
       - .env
     logging:
-      driver: "json-file"
+      driver: json-file
       options:
-        max-size: "10m"
+        max-size: 10m
         max-file: "3"

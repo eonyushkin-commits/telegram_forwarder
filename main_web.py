@@ -1,9 +1,9 @@
+import asyncio
+import html as html_lib
+import json
+import logging
 import os
 import re
-import json
-import html as html_lib
-import logging
-import asyncio
 
 import httpx
 from bs4 import BeautifulSoup
@@ -30,7 +30,7 @@ POLL_INTERVAL = int(os.environ.get("POLL_INTERVAL", "120"))
 ADD_SOURCE_LINK = os.environ.get("ADD_SOURCE_LINK", "true").lower() == "true"
 
 TG_API = f"https://api.telegram.org/bot{BOT_TOKEN}"
-SAFE_CHUNK = 3900             # режем сырой текст с запасом — экранирование удлиняет его
+SAFE_CHUNK = 3900  # режем сырой текст с запасом — экранирование удлиняет его
 
 # ---------------------------------------------------------------------------
 # AI-клиент (Google Gemini через OpenAI-совместимый API)
@@ -129,7 +129,8 @@ def parse_channel(html: str, channel: str) -> list[dict]:
                 posts[post_id]["text"] = text
         else:
             posts[post_id] = {
-                "id": post_id, "text": text,
+                "id": post_id,
+                "text": text,
                 "link": f"https://t.me/{channel}/{post_id}",
             }
 
@@ -177,12 +178,12 @@ def split_text(text: str, limit: int = SAFE_CHUNK) -> list[str]:
         if cur and len(cur) + len(line) + 1 > limit:
             chunks.append(cur)
             cur = ""
-        if len(line) > limit:                       # одна строка длиннее лимита — режем жёстко
+        if len(line) > limit:  # одна строка длиннее лимита — режем жёстко
             if cur:
                 chunks.append(cur)
                 cur = ""
             for i in range(0, len(line), limit):
-                chunks.append(line[i:i + limit])
+                chunks.append(line[i : i + limit])
         else:
             cur = f"{cur}\n{line}" if cur else line
     if cur:
@@ -210,17 +211,25 @@ async def _tg(http: httpx.AsyncClient, method: str, payload: dict, timeout: int 
 
 async def _send_chunk(http: httpx.AsyncClient, raw_chunk: str) -> dict:
     """Шлёт один кусок как HTML; если Telegram не смог распарсить разметку — шлёт чистым текстом."""
-    data = await _tg(http, "sendMessage", {
-        "chat_id": DEST_CHAT,
-        "text": html_safe(raw_chunk),
-        "parse_mode": "HTML",
-    })
+    data = await _tg(
+        http,
+        "sendMessage",
+        {
+            "chat_id": DEST_CHAT,
+            "text": html_safe(raw_chunk),
+            "parse_mode": "HTML",
+        },
+    )
     if not data.get("ok") and "parse" in str(data.get("description", "")).lower():
         logger.warning("HTML не распарсился — отправляю чистым текстом")
-        data = await _tg(http, "sendMessage", {
-            "chat_id": DEST_CHAT,
-            "text": strip_tags(raw_chunk),
-        })
+        data = await _tg(
+            http,
+            "sendMessage",
+            {
+                "chat_id": DEST_CHAT,
+                "text": strip_tags(raw_chunk),
+            },
+        )
     return data
 
 
@@ -277,7 +286,9 @@ async def main():
 
                 if channel not in state:
                     state[channel] = posts[-1]["id"]
-                    logger.info(f"@{channel}: первый запуск, стартовая позиция id={state[channel]}")
+                    logger.info(
+                        f"@{channel}: первый запуск, стартовая позиция id={state[channel]}"
+                    )
                     continue
 
                 new_posts = [p for p in posts if p["id"] > state[channel]]
