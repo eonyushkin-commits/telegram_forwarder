@@ -1,0 +1,15 @@
+services:
+  forwarder:
+    build: .
+    container_name: tg_forwarder
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      # Отметка прочитанного хранится снаружи контейнера — переживает рестарты.
+      - ./state.json:/app/state.json
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
