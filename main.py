@@ -243,16 +243,20 @@ async def main():
             logger.info(f"📨 Новый пост от @{username} (id={msg_id}): {text[:80]!r}")
 
             verdict = await analyze_post(text)
+            is_target = verdict["is_target"]
+            is_ad = verdict["is_ad"]
 
-            if verdict["is_ad"]:
-                logger.info(f"🚫 По теме, но реклама — пропуск {source_link}")
+            logger.info(f"🤖 AI: is_target={is_target}, is_ad={is_ad} — {source_link}")
+
+            if is_ad:
+                logger.info(f"🚫 Реклама/спам — пропуск {source_link}")
                 return
 
-            if not verdict["is_target"]:
-                logger.info(f"⏭  Не по теме — пропуск {source_link}")
+            if not is_target:
+                logger.info(f"⏭  Не про Локомотив — пропуск {source_link}")
                 return
 
-            logger.info(f"✅ Совпадение, постим {source_link}")
+            logger.info(f"✅ Про Локомотив, постим {source_link}")
             publish_text = verdict["text"] if verdict["text"] else text
             await publish(http, publish_text, source_link)
             await asyncio.sleep(1)
