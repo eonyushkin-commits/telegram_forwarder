@@ -77,6 +77,11 @@ SYSTEM_PROMPT = """Ты — AI-ассистент, обрабатывающий 
 Пример ответа: {"is_target": true, "is_ad": false, "text": "<b>Заголовок</b>\n\nТекст поста"}"""
 
 
+def _sanitize_json(raw: str) -> str:
+    """Убирает управляющие символы (кроме \n \r \t) которые ломают json.loads."""
+    return re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", raw)
+
+
 async def analyze_post(text: str) -> dict:
     if not text or len(text.strip()) < 10:
         return {"is_target": False, "is_ad": False, "text": ""}
@@ -103,7 +108,7 @@ async def analyze_post(text: str) -> dict:
                     f"raw_message={choice.message}"
                 )
                 raise ValueError(f"Empty content (finish_reason={choice.finish_reason})")
-            result = json.loads(content)
+            result = json.loads(_sanitize_json(content))
             return {
                 "is_target": bool(result.get("is_target", False)),
                 "is_ad": bool(result.get("is_ad", False)),
@@ -220,6 +225,15 @@ async def main():
     logger.info("✅ Telethon: авторизация успешна")
 
     async with httpx.AsyncClient(follow_redirects=True) as http:
+        # Проверка доступности канала-приёмника при старте
+        check = await _tg(http, "getChat", {"chat_id": DEST_CHAT})
+        if check.get("ok"):
+            logger.info(f"✅ Канал-приёмник найден: {check['result'].get('title', DEST_CHAT)}")
+        else:
+            logger.error(
+                f"❌ Канал-приёмник недоступен ({DEST_CHAT}): {check.get('description')}. "
+                f"Убедитесь, что бот добавлен администратором в канал."
+            )
 
         @tg_client.on(events.NewMessage(chats=SOURCES))
         async def handler(event):
