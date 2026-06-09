@@ -83,7 +83,7 @@ async def analyze_post(text: str) -> dict:
     async with ai_semaphore:
         try:
             response = await ai_client.chat.completions.create(
-                model="gemini-2.0-flash-lite",
+                model="gemini-3.1-flash-lite",
                 response_format={"type": "json_object"},
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},
