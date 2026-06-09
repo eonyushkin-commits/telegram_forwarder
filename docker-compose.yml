@@ -5,6 +5,8 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    volumes:
+      - ./session:/session   # хранит файл сессии Telethon между перезапусками
     logging:
       driver: json-file
       options:
